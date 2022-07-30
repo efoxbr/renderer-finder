@@ -77,21 +77,19 @@ function getDeviceDescription(url, cb){
 }
 
 function fetch(url, cb) {
-  debug('making HTTP request')
+  debug('making HTTP request: '+ url)
   var req = http.get(url, function(res) {
     if(res.statusCode !== 200) {
       var err = new Error('Request failed')
       err.statusCode = res.statusCode;
       return cb(err)
     }
-    debug('piping resonse')
+    debug('piping response')
     res.pipe(concat(function(buf) {
       debug('response piped')
       cb(null, buf.toString())
     }))
-  })
-
-  req.on('error', cb)
+  }).on('error', cb)
   req.end()
 }
 
@@ -128,6 +126,7 @@ function RendererFinder(ST){
     _socket = getSocket(sST, function(err, socket, port){
       if (err){
         that.emit('error', err)
+        return
       }
       debug('Finder: socket obtained')
 
@@ -137,6 +136,7 @@ function RendererFinder(ST){
         debug('                     %o', parsedMsg)
         if (gatherInfo){
           getDeviceDescription(parsedMsg.location, function(err, desc){
+            console.warn('getDeviceDescription '+err+' | '+desc, rinfo, parsedMsg, desc)
             if (err){
               that.emit('error', err)
             }
@@ -149,7 +149,7 @@ function RendererFinder(ST){
 
       socket.on("error", function (buf) {
         debug('Finder: device founder error %s', buf.toString())
-        that.emit('err', buf.toString())
+        that.emit('error', buf.toString())
     	})
 
       socket.bind(port)
@@ -160,7 +160,7 @@ function RendererFinder(ST){
 
   that.stop = function(){
     debug('Finder: stopping')
-    if (_socket && _socket._handle)
+    if (_socket)
       _socket.close()
   };
 
